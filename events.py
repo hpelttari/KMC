@@ -77,8 +77,10 @@ def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, 
 
     for i in range(x-1, x+1):
         for j in range(y-1, y+1):
-            start_index = i*grid_length + j*10
+            start_index = (i*grid_length + j)*10
             rates_to_modify = rates_list[start_index:start_index+10]
+            print(start_index,start_index+10)
+
             rates = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffusion)
             for index, rate in enumerate(rates):
                 rates_to_modify[index] = rate
