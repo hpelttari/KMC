@@ -1,5 +1,6 @@
 import numpy as np
-
+from numpy import random
+from functools import partial
 
 def adsorption(grid, x, y):
     grid[x][y] = grid[x][y] + 1
@@ -88,7 +89,6 @@ def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, 
                 j_1=0
             rates_list[i_1][j_1] = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffusion)
 
-
     return rates_list
 
 
@@ -99,3 +99,34 @@ def update_rates_list(grid, x, y, x2, y2, rates_list, p_adsorption, p_desorption
 
     return rates_list
 
+
+def get_normalized_rates_list(rates_list):
+    flattened_rates = rates_list.flatten()
+    A = np.sum(flattened_rates)
+    return np.cumsum(flattened_rates)/A
+
+
+def choose_event(rates_list):
+    r = get_normalized_rates_list(rates_list)
+    u = random.random()
+
+    for i in range(1, len(r)):
+        if r[i-1] < u and u < r[i]:
+            return np.unravel_index(i, rates_list.shape)
+
+    return np.unravel_index(0, rates_list.shape)
+
+
+def realize_event(grid, event_indices, events_list):
+    x, y, event = event_indices
+    return events_list[event](grid, x, y)
+
+
+def create_events_list():
+    event_list = [adsorption, desorption]
+
+    for i in range(-1, 2, 2):
+        for j in range(-1, 2, 2):
+            event_list.append(partial(diffusion, x_dir=i, y_dir=j))
+
+    return event_list
