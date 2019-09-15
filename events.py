@@ -11,17 +11,24 @@ def desorption(grid, x, y):
     return grid
 
 
-def diffusion(grid, x, y, x2, y2):
-    grid[x][y] = grid[x][y] - 1
-    grid[x2][y2] = grid[x2][y2] + 1
+def diffusion(grid, x, y, x_dir, y_dir):
+    grid[x][y] -=  1
+    grid[x+x_dir][y+y_dir] += 1
     return grid
 
 
-def calculate_diffusion_probability(grid, x, y, x2, y2, p):
+def calculate_diffusion_probability(grid, x, y, x_dir, y_dir, p):
+    grid_length = len(grid)
+
+    # check boundary conditions
+    if x+x_dir >= grid_length:
+        x_dir = -x
+    if y+y_dir >= grid_length:
+        y_dir = -y
 
     # diffusion is only possible to the same or lower level
     # as the diffusing atom
-    if grid[x2][y2] < grid[x][y]:
+    if grid[x+x_dir][y+y_dir] < grid[x][y]:
         return p
 
     return 0
@@ -55,10 +62,10 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffu
 
     index = 2
     # calculate rates for diffusion
-    for i in range(x-1, x+1):
-        for j in range(y-1, y+1):
-            # ignore diffusion to current location
-            if i==x and j==y:
+    for i in range(-1, 2):
+        for j in range(-1, 2):
+            # diffusion to current position is not possible
+            if i == j:
                 continue
             rates[index] = calculate_diffusion_probability(grid, x, y, i, j, p_diffusion)
             index+=1
