@@ -67,23 +67,20 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffu
 
 
 def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, p_diffusion, rates_list):
-    """
-    Calculates the rates for the location (x,y) and for the locations aroun it.
-
-    These points are the only points which rates might change after an event, so calculating
-    the rates for these points only is sufficient in every Monte Carlo step.
-    """
     grid_length = len(grid)
+    for i in range(x-1, x+2):
+        for j in range(y-1, y+2):
+            if i<grid_length and j<grid_length:
+                rates_list[i][j] = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffusion)
+                continue
+            i_1=i
+            j_1=j
+            if i_1>=grid_length:
+                i_1=0
+            if j>=grid_length:
+                j_1=0
+            rates_list[i_1][j_1] = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffusion)
 
-    for i in range(x-1, x+1):
-        for j in range(y-1, y+1):
-            start_index = (i*grid_length + j)*10
-            rates_to_modify = rates_list[start_index:start_index+10]
-            print(start_index,start_index+10)
-
-            rates = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, p_diffusion)
-            for index, rate in enumerate(rates):
-                rates_to_modify[index] = rate
 
     return rates_list
 
@@ -94,11 +91,4 @@ def update_rates_list(grid, x, y, x2, y2, rates_list, p_adsorption, p_desorption
     rates_list = calculate_rates_in_local_enviroment(grid, x2, y2, p_adsorption, p_desorption, p_diffusion, rates_list)
 
     return rates_list
-
-
-
-
-
-
-
 
