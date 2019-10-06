@@ -3,6 +3,7 @@ from numpy import random
 from scipy import constants as const
 from functools import partial
 
+random.seed(0)
 def adhere_to_boundary_conditions(grid, x, y):
     boundary = len(grid)
     if x == boundary:
@@ -117,6 +118,10 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, E, T, k
 
 
 def get_direction_from_event_index(event_index):
+
+    indices = [(0, 0), (0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]
+    return indices[event_index]
+"""
     if event_index < 2:
         x = 0
         y = 0
@@ -131,11 +136,13 @@ def get_direction_from_event_index(event_index):
                     y = j
                     break
                 current_index += 1
+    
     return x, y
-
+"""
 
 def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, rates_list, E, T, k0):
     grid_length = len(grid)
+    """
     for i in range(x-1, x+2):
         for j in range(y-1, y+2):
             if i<grid_length and j<grid_length:
@@ -148,11 +155,31 @@ def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, 
             if j>=grid_length:
                 j_1=0
             rates_list[i_1][j_1] = calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, E, T, k0)
-
+    """
+    for i in [-1, 0, 1]:
+        for j in [-1, 0, 1]:
+            x_i = x+i
+            y_j = y+j
+            if x_i >= grid_length:
+                x_i = 0
+            if y_j >= grid_length:
+                y_j = 0
+            rates_list[x_i][y_j] = calculate_rates_for_location(grid, x_i, y_j, p_adsorption, p_desorption, E, T, k0)
     return rates_list
 
 
-def update_rates_list(grid, x, y, event_index, rates_list, p_adsorption, p_desorption, p_diffusion):
+def update_rates_list(grid, x, y, event_index, rates_list, p_adsorption, p_desorption, E, T, k0):
+    grid_length = len(grid)
+    rates_list = calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, rates_list, E, T, k0)
+    x_dir, y_dir = get_direction_from_event_index(event_index)
+    x += x_dir
+    y += y_dir
+    if x  >= grid_length:
+        x = 0
+    if y >= grid_length:
+        y = 0
+    rates_list = calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, rates_list, E, T, k0)
+    """
     x_dir, y_dir = get_direction_from_event_index(event_index)
     x2 = x + x_dir
     y2 = y + y_dir
@@ -160,7 +187,7 @@ def update_rates_list(grid, x, y, event_index, rates_list, p_adsorption, p_desor
     rates_list = calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, p_diffusion, rates_list)
     if x != x2 or y != y2:
         rates_list = calculate_rates_in_local_enviroment(grid, x2, y2, p_adsorption, p_desorption, p_diffusion, rates_list)
-
+    """
     return rates_list
 
 def get_new_rates(grid, rates_list, p_adsorption, p_desorption, E, T, k0):
