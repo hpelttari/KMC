@@ -12,6 +12,7 @@ def adhere_to_boundary_conditions(grid, x, y):
     return x, y
 
 def adsorption(grid, x, y):
+    #print("ads!")
     x, y = adhere_to_boundary_conditions(grid, x, y)
     grid[x][y] = grid[x][y] + 1
     return grid
@@ -24,10 +25,16 @@ def desorption(grid, x, y):
 
 
 def diffusion(grid, x, y, x_dir, y_dir):
+    #print("diff!")
     grid[x][y] -=  1
     x2, y2 = adhere_to_boundary_conditions(grid, x+x_dir, y+y_dir)
     grid[x2][y2] += 1
     return grid
+
+
+def calculate_adsorption_rate(grid, F):
+    p = len(grid)**2 * F
+    return p
 
 
 def calculate_diffusion_rate(grid, x, y, E, T, k0):
@@ -166,23 +173,29 @@ def get_new_rates(grid, rates_list, p_adsorption, p_desorption, E, T, k0):
 def get_normalized_rates_list(rates_list):
     flattened_rates = rates_list.flatten()
     A = np.sum(flattened_rates)
-    return np.cumsum(flattened_rates)/A
+    return np.cumsum(flattened_rates)/A, A
 
 
 def choose_event(rates_list):
-    r = get_normalized_rates_list(rates_list)
+    r, A = get_normalized_rates_list(rates_list)
     u = random.random()
 
     for i in range(1, len(r)):
         if r[i-1] < u and u < r[i]:
-            return np.unravel_index(i, rates_list.shape)
+            return np.unravel_index(i, rates_list.shape), A
 
-    return np.unravel_index(0, rates_list.shape)
+    return np.unravel_index(0, rates_list.shape), A
 
 
 def realize_event(grid, event_indices, events_list):
     x, y, event = event_indices
     return events_list[event](grid, x, y)
+
+
+def get_delta_t(A):
+    u = random.random()
+    dt = -(1/A)*np.log(u)
+    return dt
 
 
 def create_events_list():
