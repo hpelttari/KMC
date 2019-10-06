@@ -1,4 +1,6 @@
 import numpy as np
+import yaml
+
 import events
 
 
@@ -21,3 +23,14 @@ def create_rates_list(grid, adsorption_rate):
             rates[i][j][0] = adsorption_rate
 
     return rates
+
+
+def read_config(filename):
+
+    with open(filename, 'r') as configuration:
+        try:
+            config = yaml.safe_load(configuration)
+        except yaml.YAMLErro as error:
+            print(error)
+
+    return config
