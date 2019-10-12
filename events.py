@@ -1,9 +1,27 @@
+from functools import partial
+
 import numpy as np
 from numpy import random
 from scipy import constants as const
-from functools import partial
+import yaml
 
-random.seed(0)
+
+def read_config(filename):
+
+    with open(filename, 'r') as configuration:
+        try:
+            config = yaml.safe_load(configuration)
+        except yaml.YAMLError as error:
+            print(error)
+
+    return config
+
+
+config = read_config('config.yml')
+seed = config['seed']
+random.seed(seed)
+
+
 def adhere_to_boundary_conditions(grid, x, y):
     boundary = len(grid)
     if x == boundary:
@@ -12,20 +30,21 @@ def adhere_to_boundary_conditions(grid, x, y):
         y = 0
     return x, y
 
+
 def adsorption(grid, x, y):
     x, y = adhere_to_boundary_conditions(grid, x, y)
-    grid[x][y] = grid[x][y] + 1
+    grid[x][y] += 1
     return grid
 
 
 def desorption(grid, x, y):
     x, y = adhere_to_boundary_conditions(grid, x, y)
-    grid[x][y] = grid[x][y] - 1
+    grid[x][y] -= 1
     return grid
 
 
 def diffusion(grid, x, y, x_dir, y_dir):
-    grid[x][y] -=  1
+    grid[x][y] -= 1
     x2, y2 = adhere_to_boundary_conditions(grid, x+x_dir, y+y_dir)
     grid[x2][y2] += 1
     return grid
@@ -84,9 +103,9 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, E, T, k
     the adsorption rate and the desorption rate.
     """
 
-    # there are 10 rates because the possible events are adsorption,
+    # there are 6 rates because the possible events are adsorption,
     # desorption and diffusion,
-    # which can happen to 8 different directions
+    # which can happen to 4 different directions
     rates = np.zeros(6)
 
     rates[0] = p_adsorption
@@ -96,17 +115,9 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, E, T, k
     p_diffusion = calculate_diffusion_rate(grid, x, y, E, T, k0)
 
     for i in [-1, 1]:
-        rates[index] = calculate_diffusion_probability(grid,
-                                                       x,
-                                                       y,
-                                                       i,
-                                                       0,
+        rates[index] = calculate_diffusion_probability(grid, x, y, i, 0,
                                                        p_diffusion)
-        rates[index+2] = calculate_diffusion_probability(grid,
-                                                         x,
-                                                         y,
-                                                         0,
-                                                         i,
+        rates[index+2] = calculate_diffusion_probability(grid, x, y, 0, i,
                                                          p_diffusion)
         index += 1
 
@@ -114,7 +125,6 @@ def calculate_rates_for_location(grid, x, y, p_adsorption, p_desorption, E, T, k
 
 
 def get_direction_from_event_index(event_index):
-
     indices = [(0, 0), (0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]
     return indices[event_index]
 
@@ -130,22 +140,19 @@ def calculate_rates_in_local_enviroment(grid, x, y, p_adsorption, p_desorption, 
                 x_i = 0
             if y_j >= grid_length:
                 y_j = 0
-            rates_list[x_i][y_j] = calculate_rates_for_location(grid, x_i, y_j, p_adsorption, p_desorption, E, T, k0)
+            rates_list[x_i][y_j] = calculate_rates_for_location(grid, x_i, y_j,
+                                                                p_adsorption,
+                                                                p_desorption,
+                                                                E, T, k0)
 
     return rates_list
 
 
 def update_rates_list(grid, x, y, event_index, rates_list, p_adsorption, p_desorption, E, T, k0):
     grid_length = len(grid)
-    rates_list = calculate_rates_in_local_enviroment(grid,
-                                                     x,
-                                                     y,
-                                                     p_adsorption,
-                                                     p_desorption,
-                                                     rates_list,
-                                                     E,
-                                                     T,
-                                                     k0)
+    rates_list = calculate_rates_in_local_enviroment(grid, x, y, p_adsorption,
+                                                     p_desorption, rates_list,
+                                                     E, T, k0)
     x_dir, y_dir = get_direction_from_event_index(event_index)
     x += x_dir
     y += y_dir
@@ -153,29 +160,20 @@ def update_rates_list(grid, x, y, event_index, rates_list, p_adsorption, p_desor
         x = 0
     if y >= grid_length:
         y = 0
-    rates_list = calculate_rates_in_local_enviroment(grid,
-                                                     x,
-                                                     y,
-                                                     p_adsorption,
-                                                     p_desorption,
-                                                     rates_list,
-                                                     E,
-                                                     T,
-                                                     k0)
+    rates_list = calculate_rates_in_local_enviroment(grid, x, y, p_adsorption,
+                                                     p_desorption, rates_list,
+                                                     E, T, k0)
 
     return rates_list
+
 
 def get_new_rates(grid, rates_list, p_adsorption, p_desorption, E, T, k0):
     for i in range(len(grid)):
         for j in range(len(grid)):
-            rates_list[i][j] = calculate_rates_for_location(grid,
-                                                            i,
-                                                            j,
+            rates_list[i][j] = calculate_rates_for_location(grid, i, j,
                                                             p_adsorption,
                                                             p_desorption,
-                                                            E,
-                                                            T,
-                                                            k0)
+                                                            E, T, k0)
 
     return rates_list
 
@@ -183,7 +181,8 @@ def get_new_rates(grid, rates_list, p_adsorption, p_desorption, E, T, k0):
 def get_normalized_rates_list(rates_list):
     flattened_rates = rates_list.flatten()
     A = np.sum(flattened_rates)
-    return np.cumsum(flattened_rates)/A, A
+    normalized_rates_list = np.cumsum(flattened_rates)/A
+    return normalized_rates_list, A
 
 
 def choose_event(rates_list):
