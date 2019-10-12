@@ -10,7 +10,9 @@ def create_grid(size):
 
 
 def create_events_dictionary():
-    events_dict = {"adsorption": events.adsorption, "desorption": events.desorption, "diffusion": events.diffusion}
+    events_dict = {"adsorption": events.adsorption,
+                   "desorption": events.desorption,
+                   "diffusion": events.diffusion}
     return events_dict
 
 
@@ -30,7 +32,7 @@ def read_config(filename):
     with open(filename, 'r') as configuration:
         try:
             config = yaml.safe_load(configuration)
-        except yaml.YAMLErro as error:
+        except yaml.YAMLError as error:
             print(error)
 
     return config
